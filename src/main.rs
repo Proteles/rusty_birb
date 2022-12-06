@@ -29,16 +29,40 @@ impl State {
     fn restart(&mut self) {
         self.player = Player::new(5, 25);
         self.frame_time = 0.0;
-        self.mode = GameMode::Playing;
+        self.mode = GameMode::Playing
+    }
+
+    fn paused(&mut self, ctx: &mut BTerm) {
+        self.mode = GameMode::Paused;
+        ctx.print_centered(5, "PAUSED");
+
+        if let Some(key) = ctx.key {
+            match key {
+                VirtualKeyCode::C => {
+                    self.mode = GameMode::Playing;
+                    self.play(ctx);
+                },
+                VirtualKeyCode::Q => ctx.quitting = true,
+                _ => {}
+            }
+        }
     }
 
     fn play(&mut self, ctx: &mut BTerm) {
         ctx.cls_bg(NAVY);
-        self.frame_time = ctx.frame_time_ms;
+        self.frame_time += ctx.frame_time_ms;
         if self.frame_time > FRAME_DURATION {
             self.frame_time = 0.0;
 
             self.player.gravity_and_move();
+        }
+        
+        if let Some(key) = ctx.key {
+            match key {
+                VirtualKeyCode::Space => self.player.flap(),
+                VirtualKeyCode::X => self.paused(ctx),
+                _ => {}
+            }
         }
 
         self.player.render(ctx);
@@ -58,19 +82,7 @@ impl State {
             match key {
                 VirtualKeyCode::P => self.restart(),
                 VirtualKeyCode::Q => ctx.quitting = true,
-                _ => {}
-            }
-        }
-    }
-
-    fn paused(&mut self, ctx: &mut BTerm) {
-        ctx.print_centered(5, "PAUSED");
-
-        if let Some(key) = ctx.key {
-            match key {
-                VirtualKeyCode::P => self.play(ctx),
-                VirtualKeyCode::Q => ctx.quitting = true,
-                _ => {}
+                _ => {},
             }
         }
     }
@@ -109,11 +121,11 @@ impl Player {
     fn render(&mut self, ctx: &mut BTerm) {
         // set is a bracket_lib function that sets a single character on the screen
         ctx.set(
-            0,
+            SCREEN_WIDTH/2,
             self.y,
             YELLOW,
             BLACK,
-            to_cp437('0')
+            to_cp437('@')
         );
     }
 
